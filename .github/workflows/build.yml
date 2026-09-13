@@ -35,8 +35,9 @@ jobs:
         cp -r build/Nocturne.xcarchive/Products/Applications/Nocturne.app Payload/
         zip -r Nocturne.ipa Payload
 
-    - name: Upload IPA Artifact
-      uses: actions/artifacts/upload-artifact@v4
+      - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
       with:
         name: Nocturne-IPA
         path: Nocturne.ipa
+
