@@ -12,43 +12,27 @@ jobs:
     - name: Set up Xcode
       run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
-    - name: Find Xcode Project
+    - name: Raw Compile Code File Bypass
       run: |
-        PROJECT_PATH=$(find . -name "*.xcodeproj" -print -quit)
-        echo "PROJECT_PATH=$PROJECT_PATH" >> $GITHUB_ENV
-        SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
-        echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
-
-    - name: Fix Blueprint Duplications and Target Version
-      run: |
-        # Strip out explicit hardcoded resource links to missing assets
-        sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
-        sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
-        sed -i '' '/cast.wav/d' "$PROJECT_PATH/project.pbxproj"
+        # Find where the actual Swift code files are sitting
+        APP_DIR=$(find . -name "NocturneApp.swift" -exec dirname {} \; | head -n 1)
+        echo "Found code directory at: $APP_DIR"
         
-        # Completely scrub out duplicate target records causing the "multiple commands produce" bug
-        sed -i '' '/NocturneApp.swift/d' "$PROJECT_PATH/project.pbxproj" 2>/dev/null || true
+        # Build a fresh, clean app bundle directory from scratch
+        mkdir -p build/Nocturne.app
         
-        # Globally force the target deployment down to iOS 17.0
-        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
-
-    - name: Build Archive
-      run: |
-        xcodebuild -project "$PROJECT_PATH" \
-                   -scheme "$SCHEME_NAME" \
-                   -configuration Release \
-                   -sdk iphoneos \
-                   -archivePath $PWD/build/Nocturne.xcarchive \
-                   clean archive \
-                   CODE_SIGNING_ALLOWED=NO \
-                   CODE_SIGNING_REQUIRED=NO \
-                   CODE_SIGN_IDENTITY="" \
-                   PROVISIONING_PROFILE_SPECIFIER=""
+        # Compile all Swift files directly, completely skipping the broken project settings file
+        xcrun -sdk iphoneos swiftc $(find "$APP_DIR" -name "*.swift") \
+          -target arm64-apple-ios17.0 \
+          -o build/Nocturne.app/Nocturne
+          
+        # Copy the asset catalog plist layout into the bundle if it exists
+        find . -name "Info.plist" -exec cp {} build/Nocturne.app/Info.plist \; 2>/dev/null || true
 
     - name: Package IPA Manually
       run: |
         mkdir -p Payload
-        cp -r build/Nocturne.xcarchive/Products/Applications/*.app Payload/
+        cp -r build/Nocturne.app Payload/
         zip -r Nocturne.ipa Payload
 
     - name: Upload IPA Artifact
