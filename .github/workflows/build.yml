@@ -19,22 +19,14 @@ jobs:
         SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
         echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
 
-    - name: Fix Missing Assets and Target Version
+    - name: Force Project Build Properties
       run: |
-        BASE_DIR=$(dirname "$PROJECT_PATH")
+        # Strip out explicit hardcoded resource links to missing assets
+        sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
+        sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
+        sed -i '' '/cast.wav/d' "$PROJECT_PATH/project.pbxproj"
         
-        # Create audio placeholders directly in the main directory
-        touch "$BASE_DIR/impact.wav"
-        touch "$BASE_DIR/hurt.wav"
-        touch "$BASE_DIR/cast.wav"
-        
-        # Create audio placeholders in a Resources directory just in case
-        mkdir -p "$BASE_DIR/Resources"
-        touch "$BASE_DIR/Resources/impact.wav"
-        touch "$BASE_DIR/Resources/hurt.wav"
-        touch "$BASE_DIR/Resources/cast.wav"
-        
-        # Force the project to target iOS 17.0 so it builds on this Mac runner
+        # Globally downscale deployment build metrics to target iOS 17.0
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
 
     - name: Build Archive
