@@ -19,8 +19,13 @@ jobs:
         SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
         echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
 
-    - name: Force Project Build Properties
+    - name: Clean Duplicate Folders and Fix Target Version
       run: |
+        # Find where the nested Nocturne folder lives and delete the duplicate layout tree if it exists
+        if [ -d "Nocturne/Nocturne/Nocturne" ]; then
+          rm -rf "Nocturne/Nocturne/Nocturne"
+        fi
+
         # Strip out explicit hardcoded resource links to missing assets
         sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
