@@ -21,10 +21,16 @@ jobs:
 
     - name: Fix Missing Assets and Target Version
       run: |
-        # Create blank dummy files so Xcode doesn't fail on missing audio assets
-        mkdir -p Nocturne/Resources
-        touch Nocturne/Resources/impact.wav
-        touch Nocturne/Resources/hurt.wav
+        # Find where the project root actually lives dynamically
+        BASE_DIR=$(dirname "$PROJECT_PATH")
+        
+        # Create a Resources folder exactly where Xcode expects it
+        mkdir -p "$BASE_DIR/Resources"
+        
+        # Create all three blank dummy files so Xcode doesn't fail
+        touch "$BASE_DIR/Resources/impact.wav"
+        touch "$BASE_DIR/Resources/hurt.wav"
+        touch "$BASE_DIR/Resources/cast.wav"
         
         # Force the project to target iOS 17.0 so it builds perfectly on this Mac
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
