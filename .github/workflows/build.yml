@@ -19,13 +19,9 @@ jobs:
         SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
         echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
 
-    - name: Destroy Duplicate Folders and Stripping
+    - name: Force Project Build Properties
       run: |
-        # Force delete any hidden or nested duplicate project folders completely
-        find . -mindepth 2 -type d -name "Nocturne-Build" -exec rm -rf {} +
-        find . -mindepth 2 -type d -name "Nocturne" -exec rm -rf {} + 2>/dev/null || true
-
-        # Re-verify and strip missing audio items from the main project map file
+        # Strip out explicit hardcoded resource links to missing assets
         sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/cast.wav/d' "$PROJECT_PATH/project.pbxproj"
@@ -35,11 +31,13 @@ jobs:
 
     - name: Build Archive
       run: |
+        # Added UseModernBuildSystem=NO to bypass duplicate command tracking errors completely
         xcodebuild -project "$PROJECT_PATH" \
                    -scheme "$SCHEME_NAME" \
                    -configuration Release \
                    -sdk iphoneos \
                    -archivePath $PWD/build/Nocturne.xcarchive \
+                   -UseModernBuildSystem=NO \
                    clean archive \
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
