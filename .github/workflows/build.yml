@@ -19,19 +19,22 @@ jobs:
         SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
         echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
 
-    - name: Force Project Build Properties
+    - name: Destroy Duplicate Folders and Stripping
       run: |
-        # Strip out explicit hardcoded resource links to missing assets
+        # Force delete any hidden or nested duplicate project folders completely
+        find . -mindepth 2 -type d -name "Nocturne-Build" -exec rm -rf {} +
+        find . -mindepth 2 -type d -name "Nocturne" -exec rm -rf {} + 2>/dev/null || true
+
+        # Re-verify and strip missing audio items from the main project map file
         sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/cast.wav/d' "$PROJECT_PATH/project.pbxproj"
         
-        # Globally downscale deployment build metrics to target iOS 17.0
+        # Globally force the targeting down to iOS 17.0
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
 
     - name: Build Archive
       run: |
-        # Added COMPILER_INDEX_STORE_ENABLE=NO and disabled strict validation flags to force compilation past duplicate indexing errors
         xcodebuild -project "$PROJECT_PATH" \
                    -scheme "$SCHEME_NAME" \
                    -configuration Release \
@@ -41,10 +44,7 @@ jobs:
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
                    CODE_SIGN_IDENTITY="" \
-                   PROVISIONING_PROFILE_SPECIFIER="" \
-                   COMPILER_INDEX_STORE_ENABLE=NO \
-                   BUILD_BUILD_INTENTS_IN_PROCESS=YES \
-                   CLANG_WARN_DUPLICATE_METHOD_MATCH=NO
+                   PROVISIONING_PROFILE_SPECIFIER=""
 
     - name: Package IPA Manually
       run: |
