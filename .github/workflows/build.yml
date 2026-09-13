@@ -21,18 +21,20 @@ jobs:
 
     - name: Fix Missing Assets and Target Version
       run: |
-        # Find where the project root actually lives dynamically
         BASE_DIR=$(dirname "$PROJECT_PATH")
         
-        # Create a Resources folder exactly where Xcode expects it
-        mkdir -p "$BASE_DIR/Resources"
+        # Create audio placeholders directly in the main directory
+        touch "$BASE_DIR/impact.wav"
+        touch "$BASE_DIR/hurt.wav"
+        touch "$BASE_DIR/cast.wav"
         
-        # Create all three blank dummy files so Xcode doesn't fail
+        # Create audio placeholders in a Resources directory just in case
+        mkdir -p "$BASE_DIR/Resources"
         touch "$BASE_DIR/Resources/impact.wav"
         touch "$BASE_DIR/Resources/hurt.wav"
         touch "$BASE_DIR/Resources/cast.wav"
         
-        # Force the project to target iOS 17.0 so it builds perfectly on this Mac
+        # Force the project to target iOS 17.0 so it builds on this Mac runner
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
 
     - name: Build Archive
