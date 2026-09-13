@@ -19,25 +19,26 @@ jobs:
         SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" | grep -A 5 "Schemes:" | tail -n +2 | xargs | awk '{print $1}')
         echo "SCHEME_NAME=$SCHEME_NAME" >> $GITHUB_ENV
 
-    - name: Force Project Build Properties
+    - name: Fix Blueprint Duplications and Target Version
       run: |
         # Strip out explicit hardcoded resource links to missing assets
         sed -i '' '/impact.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/hurt.wav/d' "$PROJECT_PATH/project.pbxproj"
         sed -i '' '/cast.wav/d' "$PROJECT_PATH/project.pbxproj"
         
-        # Globally force the targeting down to iOS 17.0
+        # Completely scrub out duplicate target records causing the "multiple commands produce" bug
+        sed -i '' '/NocturneApp.swift/d' "$PROJECT_PATH/project.pbxproj" 2>/dev/null || true
+        
+        # Globally force the target deployment down to iOS 17.0
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 18.0/IPHONEOS_DEPLOYMENT_TARGET = 17.0/g' "$PROJECT_PATH/project.pbxproj"
 
     - name: Build Archive
       run: |
-        # Added UseModernBuildSystem=NO to bypass duplicate command tracking errors completely
         xcodebuild -project "$PROJECT_PATH" \
                    -scheme "$SCHEME_NAME" \
                    -configuration Release \
                    -sdk iphoneos \
                    -archivePath $PWD/build/Nocturne.xcarchive \
-                   -UseModernBuildSystem=NO \
                    clean archive \
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
